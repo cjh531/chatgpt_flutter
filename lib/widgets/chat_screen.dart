@@ -77,6 +77,7 @@ class MessageItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CircleAvatar(
           backgroundColor: message.isUser ? Colors.blue : Colors.grey,
@@ -86,7 +87,10 @@ class MessageItem extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text(message.content),
+        Flexible(
+            child: Container(
+                margin: const EdgeInsets.only(top: 10),
+                child: Text(message.content))),
       ],
     );
   }
