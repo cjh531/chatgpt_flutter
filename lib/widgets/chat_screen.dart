@@ -1,5 +1,6 @@
 import 'package:chatgpt/injection.dart';
 import 'package:chatgpt/models/message.dart';
+import 'package:chatgpt/states/chat_ui_state.dart';
 import 'package:flutter/material.dart';
 import 'package:chatgpt/states/message_state.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,6 +13,7 @@ class ChatScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final messages = ref.watch(messageProvider);
+    final chatUiState = ref.watch(chatUiProvider);
     return Scaffold(
       appBar: AppBar(
           title: const Text('Chat'),
@@ -35,6 +37,7 @@ class ChatScreen extends HookConsumerWidget {
                   itemCount: messages.length),
             ),
             TextField(
+              enabled: !chatUiState.requestLoading,
               controller: _textController,
               decoration: InputDecoration(
                   hintText: 'Type a message...',
@@ -61,11 +64,18 @@ class ChatScreen extends HookConsumerWidget {
   }
 
   void _requestChatGPT(String content, WidgetRef ref) async {
-    final res = await chatgpt.sendChat(content);
-    final text = res.choices.first.message?.content ?? '';
-    final Message message =
-        Message(content: text, isUser: false, timestamp: DateTime.now());
-    ref.read(messageProvider.notifier).addMessage(message);
+    ref.read(chatUiProvider.notifier).setRequestLoading(true);
+    try {
+      final res = await chatgpt.sendChat(content);
+      final text = res.choices.first.message?.content ?? '';
+      final Message message =
+          Message(content: text, isUser: false, timestamp: DateTime.now());
+      ref.read(messageProvider.notifier).addMessage(message);
+    } catch (e) {
+      logger.e('requestChatGPT error: $e');
+    } finally {
+      ref.read(chatUiProvider.notifier).setRequestLoading(false);
+    }
   }
 }
 
@@ -82,7 +92,7 @@ class MessageItem extends StatelessWidget {
         CircleAvatar(
           backgroundColor: message.isUser ? Colors.blue : Colors.grey,
           child: Text(
-            message.isUser ? 'A' : 'GPT',
+            message.isUser ? 'You' : 'GPT',
             style: const TextStyle(color: Colors.white),
           ),
         ),
